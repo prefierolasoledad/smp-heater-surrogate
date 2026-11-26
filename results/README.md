@@ -87,21 +87,25 @@ All values in the table come from the exact physics model (`physics.py`), includ
 
 **New code**
 - `physics.mechanics()` implements report eqs. (25)–(28), (31), (33) and (34).
-- It reproduces Table 5.6 for the Stage-1 neat SMP hinge: k_θ,lock 0.427 N·m/rad, τ_rec,0 13.4 mN·m, TM −0.46, f1 1.20 Hz, ε_max 8.38 %.
+- It reproduces Table 5.6 for the Stage-1 neat SMP hinge: k_θ,lock 0.427 N·m/rad, f1 1.20 Hz, ε_max 8.38 %. Recovery torque follows the **corrected** Table 5.6 (η_s = 0.15, see below): τ_rec,0 2.0 mN·m, TM −0.92.
 - It also reproduces Stage-2 k_θ,lock (10.87 N·m/rad) and f1 (6.06 Hz).
-- `tests/test_physics.py` now has 30 passing tests and 1 expected failure (see below).
+- `tests/test_physics.py`: 35 tests pass.
 
-**Moduli convention that reproduces Table 5.6:** the locked hinge uses the fully glassy limits (E_g, E_f) and recovery uses the fully rubbery limits (E_r, E_f,act), with no η_s. Using E_m(60 °C) = 1.449 GPa instead of E_g would lower k_θ,lock by 3.5 %.
+**Moduli convention that reproduces Table 5.6:** the locked hinge uses the fully glassy limits (E_g, E_f) and recovery uses the fully rubbery limits (E_r, E_f,act), with η_s = 0.15 applied to the recovery torque (eq. 32). Using E_m(60 °C) = 1.449 GPa instead of E_g would lower k_θ,lock by 3.5 %.
 
-## ⚠ Inconsistency found in report Table 5.6
+## Table 5.6 inconsistency (found and resolved)
 
-The Stage-2 (CFR-SMPC) initial recovery torque of **141.4 mN·m cannot be reproduced** with the rule that reproduces Stage-1. That rule (rubbery moduli, no η_s) gives **935.6 mN·m** for Stage-2. The closest match is 140.3 mN·m, using η_s = 0.15, but Stage-1's 13.4 mN·m is computed without η_s.
+**What was wrong.** The original Table 5.6 applied the efficiency factor η_s of eq. (32) to Stage-2 (141.4 mN·m ≈ 0.15 × 935.6) but not to Stage-1 (13.4 mN·m). The two stages therefore weren't comparable, and the "10.5×" torque gain was an artefact of the mix.
 
-The two stages need one consistent convention, and fixing it changes the Stage-2 figures in the table:
-- **Without η_s:** τ_rec,0 = 935.6 mN·m and TM = +36.4. The 10.5× claim becomes about 70×.
-- **With η_s = 0.15 for both stages:** Stage-1 drops to 2.0 mN·m (TM −0.92) and Stage-2 is about 140 mN·m (TM about +4.6).
+**Resolution chosen:** apply η_s = 0.15 to both stages. This is the lower, conservative end of the report's 0.15–0.35 range. It is an assumption until it is measured: η_s = measured recovery torque ÷ predicted torque, using the load cell in Table 5.2. ANSYS Transient Thermal cannot provide it, because it computes no torque.
 
-Either way the conclusion holds (the neat hinge fails and the CFR hinge passes), but Table 5.6 and the "10.5×" text should be corrected. The test is marked `xfail` until this is resolved.
+| Corrected Table 5.6 | Stage-1 neat | Stage-2 CFR-SMPC |
+|---|---|---|
+| τ_rec,0 | 13.4 → **2.0 mN·m** | 141.4 → **140.3 mN·m** |
+| Torque margin TM | −0.46 → **−0.92** | +4.66 → **+4.61** |
+| Torque gain, Stage-2 over Stage-1 | 10.5× → **about 70×** | |
+
+The torque gain is about 70× under any single η_s, because η_s cancels in the ratio. The conclusion is unchanged: the neat hinge fails and the CFR hinge passes.
 
 ## Optimisation with mechanical constraints (neat hinge)
 
@@ -113,11 +117,11 @@ Either way the conclusion holds (the neat hinge fails and the CFR hinge passes),
 
 | Design | b × t (mm) | t_act (s) | ΔT_wire (K) | E_cyc (J) | k_θ,lock (N·m/rad) | τ_rec,0 (mN·m) | f1 (Hz) | ε_max | Meets thermal / mech |
 |---|---|---|---|---|---|---|---|---|---|
-| Baseline | 25.0 × 1.60 | 38.5 | 16.0 | 154 | 0.427 | 13.4 | 1.20 | 8.4 % | ✓ / ✓ |
-| C: thermal-only optimum (step 4) | 21.5 × 1.01 | 16.1 | 6.6 | 80 | 0.092 | 2.9 | 0.56 | 5.3 % | ✓ / ✗ |
-| A_mech: surrogate TPE | 24.6 × 1.62 | 30.1 | 20.7 | 149 | 0.437 | 13.7 | 1.22 | 8.5 % | ✓ / ✓ |
-| B_mech: exact-physics TPE | 23.7 × 1.66 | 29.4 | 28.8 | 147 | 0.456 | 14.3 | 1.24 | 8.7 % | ✓ / ✓ |
-| **D: best design on the speed–stiffness front** | **20.1 × 1.79** | **26.6** | **16.4** | **132** | **0.483** | **15.2** | **1.28** | **9.4 %** | **✓ / ✓** |
+| Baseline | 25.0 × 1.60 | 38.5 | 16.0 | 154 | 0.427 | 2.0 | 1.20 | 8.4 % | ✓ / ✓ |
+| C: thermal-only optimum (step 4) | 21.5 × 1.01 | 16.1 | 6.6 | 80 | 0.092 | 0.4 | 0.56 | 5.3 % | ✓ / ✗ |
+| A_mech: surrogate TPE | 24.6 × 1.62 | 30.1 | 20.7 | 149 | 0.437 | 2.1 | 1.22 | 8.5 % | ✓ / ✓ |
+| B_mech: exact-physics TPE | 23.7 × 1.66 | 29.4 | 28.8 | 147 | 0.456 | 2.1 | 1.24 | 8.7 % | ✓ / ✓ |
+| **D: best design on the speed–stiffness front** | **20.1 × 1.79** | **26.6** | **16.4** | **132** | **0.483** | **2.3** | **1.28** | **9.4 %** | **✓ / ✓** |
 
 Design D's heater: d_w = 0.23 mm, p = 2.39 mm, a = 15.8 mm, V = 7.25 V, P = 4.97 W.
 
@@ -128,7 +132,7 @@ Design D's heater: d_w = 0.23 mm, p = 2.39 mm, a = 15.8 mm, V = 7.25 V, P = 4.97
 3. **How the trade-off works.** Stiffness scales with b·t³, while heat capacity, and so heating time, scales with b·t. The optimiser therefore makes the hinge narrower (b → 20 mm) and slightly thicker (t → 1.8 mm), gaining stiffness from t³ for little extra heat capacity. The 10 % fold-strain limit caps t at 1.91 mm. Design D sits at ε = 9.4 %, close to that limit.
 4. **The Pareto search beat both constrained TPE runs.** NSGA-II found 26.6 s against 30.1 s (surrogate TPE) and 29.4 s (exact-physics TPE). TPE with 500 trials hasn't converged under the extra constraints. Design D was re-checked against every constraint with the exact physics.
 5. **The surrogate is still accurate:** 30.21 s predicted against 30.08 s exact at A_mech, an error of 0.4 %.
-6. **Deployment is still out of reach for neat epoxy.** All neat designs keep TM ≈ −0.4 (recovery torque about 15 mN·m against 25 mN·m drag) and f1 ≈ 1.2–1.3 Hz, below the 1.5–2.0 Hz ADCS limit. No heater design fixes this, which supports the report's case for Stage-2 carbon-fibre reinforcement.
+6. **Deployment is still out of reach for neat epoxy.** All neat designs keep TM ≈ −0.9 (recovery torque about 2 mN·m against 25 mN·m drag, with η_s = 0.15) and f1 ≈ 1.2–1.3 Hz, below the 1.5–2.0 Hz ADCS limit. No heater design fixes this, which supports the report's case for Stage-2 carbon-fibre reinforcement.
 
 **Figure:** `../figures/pareto_tact_stiffness.png` (speed against stiffness, with the baseline, design C, A_mech and design D marked).
 

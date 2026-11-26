@@ -73,8 +73,8 @@ def test_panel_inertia():
 
 @pytest.mark.parametrize("key,expected,tol", [
     ("k_lock", 0.427, 0.001),
-    ("tau_rec0", 13.4e-3, 0.05e-3),
-    ("TM", -0.46, 0.01),
+    ("tau_rec0", 2.01e-3, 0.01e-3),    # corrected Table 5.6 (eta_s = 0.15)
+    ("TM", -0.92, 0.01),
     ("f1", 1.20, 0.01),
     ("eps_max", 0.0838, 0.0001),
 ])
@@ -91,13 +91,19 @@ def test_stage2_mechanics_table_5_6(key, expected, tol):
     assert float(s2[key]) == pytest.approx(expected, abs=tol)
 
 
-@pytest.mark.xfail(strict=True, reason=(
-    "Table 5.6 lists 141.4 mN.m for Stage-2, but the Stage-1 rule that "
-    "reproduces 13.4 mN.m (E_r, E_f,act, no eta_s) gives 935.6 mN.m. "
-    "141.4 is close to eta_s = 0.15 (140.3), which Stage-1 does not use. "
-    "Inconsistency in the report; check the supplementary study."))
-def test_stage2_recovery_torque_table_5_6():
-    assert float(s2["tau_rec0"]) == pytest.approx(141.4e-3, abs=0.5e-3)
+def test_stage2_recovery_torque_corrected_table_5_6():
+    """Corrected Table 5.6, eta_s = 0.15 for both stages. (The original table
+    listed 141.4 mN.m / TM +4.66 for Stage-2 with eta_s, but Stage-1 without.)"""
+    assert float(s2["tau_rec0"]) == pytest.approx(140.3e-3, abs=0.1e-3)
+    assert float(s2["TM"]) == pytest.approx(4.61, abs=0.01)
+
+
+def test_stage_ratio_independent_of_eta_s():
+    """The Stage-2/Stage-1 torque ratio (~70x) does not depend on eta_s."""
+    r = float(s2["tau_rec0"] / s1["tau_rec0"])
+    r1 = float(mechanics(B, T, LH, t_f=0.2e-3, eta_s=1.0)["tau_rec0"]
+               / mechanics(B, T, LH, eta_s=1.0)["tau_rec0"])
+    assert r == pytest.approx(69.8, abs=0.1) and r1 == pytest.approx(r)
 
 
 # --- 2D finite-difference model (step 6) --------------------------------

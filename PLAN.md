@@ -9,7 +9,7 @@
 | Step | Status | Output |
 |---|---|---|
 | 0. Setup | ✅ Done | `.venv/`, `requirements.txt`, `.gitignore`, `README.md` |
-| 1. Physics model | ✅ Done | `src/physics.py`; `tests/test_physics.py`: 33 pass, 1 expected failure |
+| 1. Physics model | ✅ Done | `src/physics.py`; `tests/test_physics.py`: 35 pass |
 | 2. Dataset | ✅ Done | `data/synthetic_v1.csv`, `data/README.md` |
 | 3. Surrogate | ✅ Done | `src/train.py`, `results/metrics.csv`, figures, `models/` |
 | 4. Optimisation | ✅ Done | `src/optimise.py`, `results/optimisation.csv`, `results/pareto_front.csv` |
@@ -120,13 +120,17 @@ Every design selected with the surrogate was re-checked with `physics.py`.
 
 **What was built:**
 - `physics.mechanics()` implements eqs. (25)–(28), (31), (33) and (34).
-- It reproduces Table 5.6: Stage-1 in full (0.427 N·m/rad, 13.4 mN·m, TM −0.46, 1.20 Hz, 8.38 %), and Stage-2's k_θ,lock (10.87) and f1 (6.06).
-- **Convention:** glassy limits for the locked hinge, rubbery limits for recovery, no η_s.
+- It reproduces Table 5.6: Stage-1 in full (0.427 N·m/rad, 1.20 Hz, 8.38 %), and Stage-2's k_θ,lock (10.87) and f1 (6.06).
+- **Convention:** glassy limits for the locked hinge, rubbery limits for recovery, and **η_s = 0.15 for both stages** (decided 2026-11-26).
 
 **Inconsistency found in the report:**
-- The Stage-2 τ_rec,0 of 141.4 mN·m doesn't follow the Stage-1 rule, which gives 935.6 mN·m. 141.4 is close to η_s = 0.15 (140.3), but Stage-1 doesn't use η_s.
-- This is recorded as an `xfail` test.
-- **Action for you:** fix Table 5.6 and the "10.5×" claim in the report (details in `results/README.md`).
+- The original Table 5.6 applied η_s to Stage-2 only. This is now **resolved** with η_s = 0.15 for both stages:
+    - Stage-1: τ_rec,0 2.0 mN·m, TM −0.92
+    - Stage-2: τ_rec,0 140.3 mN·m, TM +4.61
+    - torque gain: about 70× (not 10.5×)
+- The tests now check the corrected values (35 pass).
+- **Action for you:** paste the corrected values into the report (Table 5.6, the "Key engineering conclusion" paragraph, Section 6.3.3).
+- η_s is still an assumption. A bench load-cell test measures it; ANSYS thermal cannot.
 
 **Optimiser additions:**
 - New constraints: k_θ,lock ≥ baseline and ε_max ≤ 10 %. The mechanics are evaluated exactly.
@@ -143,7 +147,7 @@ Every design selected with the surrogate was re-checked with `physics.py`.
 
 - **Why D looks like this:** stiffness scales with b·t³ but heat capacity scales with b·t, so the hinge becomes narrower and thicker. The fold-strain limit caps t at 1.91 mm.
 - **TPE fell short:** the Pareto search beat both constrained TPE runs (30.1 s and 29.4 s).
-- **Neat hinge still can't deploy:** TM ≈ −0.4 and f1 ≈ 1.2–1.3 Hz for every design, which supports Stage-2 reinforcement.
+- **Neat hinge still can't deploy:** TM ≈ −0.9 and f1 ≈ 1.2–1.3 Hz for every design, which supports Stage-2 reinforcement.
 
 ## 5. ANSYS validation ⏳ (prepared; replaces the literature check)
 
@@ -206,7 +210,7 @@ models/    trained models (git-ignored; regenerate with train.py)
 ## Order of remaining work
 
 1. 5: run R01–R15 in ANSYS following `ANSYS_RUNS.md` and fill in `data/ansys_results.csv` *(you)*; then run `src/ansys_ingest.py` and add section 5.7.8 and one slide *(Claude)*.
-2. Pick one η_s convention and fix the Table 5.6 Stage-2 torque and the "10.5×" claim in the report *(you)*.
+2. Paste the corrected Table 5.6 values (η_s = 0.15: Stage-1 2.0 mN·m / TM −0.92, Stage-2 140.3 mN·m / TM +4.61, gain about 70×) into the report *(you)*. Done in code, results, doc and slides.
 3. Set the resin's real wire temperature limit, then rerun steps 2–4 (about 15 min) *(you choose, Claude reruns)*.
 4. Before submission *(you)*:
     - verify references [22]–[28] and the existing "[Verify…]" references [10], [13], [15] and [19]

@@ -120,6 +120,9 @@ THETA_0 = np.pi                 # stowed angle, rad (180 deg)
 M_P, L_P = 0.25, 0.300          # 3U CubeSat panel mass (kg) and length (m)
 J_P = M_P * L_P**2 / 3          # eq. (31): 7.5e-3 kg m^2
 TAU_DRAG = 25e-3                # harness/MLI drag torque, N m
+# Strain-energy storage efficiency of eq. (32), assumed: lower (conservative)
+# end of the report's 0.15-0.35 range. Measure it on the bench (load cell).
+ETA_S = 0.15
 
 
 def frozen_fraction(T):
@@ -133,7 +136,7 @@ def matrix_modulus(T):
     return phi * E_G + (1 - phi) * E_R
 
 
-def mechanics(b, t, l_h, t_f=0.0, eta_s=1.0):
+def mechanics(b, t, l_h, t_f=0.0, eta_s=ETA_S):
     """Hinge stiffness, recovery torque, torque margin and deployed frequency.
 
     t_f = 0 gives the Stage-1 neat SMP hinge; t_f > 0 the Stage-2 symmetric
@@ -142,8 +145,9 @@ def mechanics(b, t, l_h, t_f=0.0, eta_s=1.0):
     Moduli convention (the one that reproduces Table 5.6): the locked hinge
     uses the fully glassy limits (E_g, E_f) and recovery uses the fully rubbery
     limits (E_r, E_f,act). Using E_m(60 degC) = 1.449 GPa instead of E_g would
-    lower k_lock by 3.5 %. eta_s (eq. 32, strain-energy efficiency 0.15-0.35)
-    defaults to 1 because Table 5.6 Stage-1 is computed without it.
+    lower k_lock by 3.5 %. eta_s (eq. 32) defaults to ETA_S = 0.15 for BOTH
+    stages; this is the corrected Table 5.6 convention (the original table
+    omitted it for Stage-1 only, which made the two stages inconsistent).
     """
     b, t, l_h, t_f = (np.asarray(x, dtype=float) for x in (b, t, l_h, t_f))
     t_c = t - 2 * t_f

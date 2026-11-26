@@ -10,7 +10,7 @@ It is the ML part of the B.Tech minor project *Design and Electrothermal Charact
 
 | Item | Result |
 |---|---|
-| Physics model | Reproduces report Table 5.6, thermal and mechanical (33 tests pass; 1 expected failure flags an inconsistency in the report's Stage-2 torque) |
+| Physics model | Reproduces report Table 5.6, thermal and mechanical (35 tests pass; the report's Stage-2 torque inconsistency is resolved with η_s = 0.15 for both stages) |
 | Dataset | 5,000 Latin hypercube designs; 3,037 pass the validity checks |
 | Surrogate (XGBoost, held-out test set) | Heating time R² 0.987, wire hotspot 0.985, cooling time 0.999, energy 0.991 |
 | Physics-informed features | Raise heating-time R² from 0.77 (raw inputs only) to 0.99 |
@@ -82,8 +82,8 @@ PLAN.md     full project plan and remaining steps
 - **Physics model.** It uses lumped capacitance, constant nichrome resistivity, linear convection and a straight-wire conduction estimate for the hotspot. The surrogate inherits all of these assumptions.
 - **Wire temperature limit.** The 200 °C wire-safe limit is an assumption. Replace it with the TGA/DSC limit of the actual resin (`T_WIRE_MAX_C` in `src/generate.py`).
 - **Heater cut-off.** Optimised designs have steady-state temperatures of about 410–435 °C, so they need a thermostat or timed cut-off.
-- **Neat epoxy can't deploy a panel.** Even with stiffness held at the baseline, every neat-epoxy design has a negative torque margin (TM ≈ −0.4) and f1 ≈ 1.2–1.3 Hz. No heater design fixes this; it needs the Stage-2 carbon-fibre hinge.
-- **Report Table 5.6 is inconsistent.** Its Stage-2 recovery torque (141.4 mN·m) doesn't follow the rule that reproduces Stage-1 (that rule gives 935.6 mN·m). See `results/README.md`.
+- **Neat epoxy can't deploy a panel.** Even with stiffness held at the baseline, every neat-epoxy design has a negative torque margin (TM ≈ −0.9 with η_s = 0.15) and f1 ≈ 1.2–1.3 Hz. No heater design fixes this; it needs the Stage-2 carbon-fibre hinge.
+- **η_s = 0.15 is assumed.** It is the lower end of the report's range, applied to both stages (this corrects Table 5.6). Measure it with a load-cell recovery test.
 
 ## Next steps
 
