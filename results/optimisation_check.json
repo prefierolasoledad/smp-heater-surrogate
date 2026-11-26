@@ -1,0 +1,9 @@
+{
+  "surrogate_pred_t_act": 17.25088119506836,
+  "physics_t_act": 17.111845822234528,
+  "surrogate_pred_dT_wire": 15.135931968688965,
+  "physics_dT_wire": 14.836575378920616,
+  "n_trials": 500,
+  "feasible_trials_surrogate": 296,
+  "feasible_trials_physics": 256
+}

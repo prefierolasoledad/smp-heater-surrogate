@@ -1,0 +1,19 @@
+# Python environment (about 1 GB, machine-specific; rebuild from requirements.txt)
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+
+# Tool caches
+.pytest_cache/
+.ipynb_checkpoints/
+
+# Trained models (about 250 MB; regenerate with: .venv/bin/python src/train.py)
+models/
+
+# Editor / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini
