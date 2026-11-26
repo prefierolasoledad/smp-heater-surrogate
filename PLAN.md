@@ -14,7 +14,7 @@
 | 3. Surrogate | ✅ Done | `src/train.py`, `results/metrics.csv`, figures, `models/` |
 | 4. Optimisation | ✅ Done | `src/optimise.py`, `results/optimisation.csv`, `results/pareto_front.csv` |
 | 4b. Torque / stiffness constraint | ✅ Done | `physics.mechanics()`, `results/pareto_front_stiffness.csv`, `figures/pareto_tact_stiffness.png` |
-| 5. Literature check | ⏳ Blocked: needs the digitised curves | |
+| 5. ANSYS validation (replaces the literature check) | ⏳ Prepared, waiting for ANSYS runs (about 1 week) | `ANSYS_RUNS.md`, `data/ansys_run_plan.csv`, `data/ansys_results_template.csv`, `src/ansys_plan.py`, `src/ansys_ingest.py` |
 | 6. Multi-fidelity upgrade | ✅ Done (2D FD; ANSYS can slot in later) | `src/fd_model.py`, `src/multifidelity.py`, `data/fd_highfidelity.csv`, `figures/multifidelity_learning_curve.png` |
 | 7. Report section and slides | ✅ Drafted (includes step 6) | Report section 5.7.1–5.7.7 (Claude Doc) and a 12-slide deck (Slides artifact); links in chat |
 
@@ -145,7 +145,24 @@ Every design selected with the surrogate was re-checked with `physics.py`.
 - **TPE fell short:** the Pareto search beat both constrained TPE runs (30.1 s and 29.4 s).
 - **Neat hinge still can't deploy:** TM ≈ −0.4 and f1 ≈ 1.2–1.3 Hz for every design, which supports Stage-2 reinforcement.
 
-## 5. Literature check ⏳ (blocked: needs the curves)
+## 5. ANSYS validation ⏳ (prepared; replaces the literature check)
+
+**Why the change:** the cited papers aren't available, and ANSYS runs on our own hinge are a stronger check than fitting other groups' composites. The literature fit below is dropped unless the papers turn up.
+
+**Prepared:**
+- **`src/ansys_plan.py` → `data/ansys_run_plan.csv`:** 25 designs, all at P ≤ 10 W. R01 is the baseline and R02 is optimum D; the rest are ordered by farthest-point spacing, so any first-N subset covers the design space evenly. R01–R15 are marked essential. Each row gives geometry, power, heat generation, end time and time step.
+- **`ANSYS_RUNS.md`:** the model set-up (geometry parameters and Design Points, materials, loads, mesh check) and exactly what to record.
+- **`src/ansys_ingest.py`:** a three-way comparison (ANSYS against the lumped equations against the 2D FD model), leave-one-out errors and the ANSYS speed-up of D. It has been tested with `--demo`, where FD stands in for ANSYS.
+
+**Runs needed (from the FD learning curve):**
+
+| ANSYS runs | Heating-time error with the ML correction |
+|---|---|
+| 5 | about 6 % (equations alone: 12 %) |
+| 15 | about 3 % |
+| 25 | about 2.7 % |
+
+**Original plan (dropped):**
 
 - **Needed from you:** digitise 1–3 recovery-angle-versus-time curves with WebPlotDigitizer and save them as `data/digitized/<paper>_<fig>.csv`, with columns `t_s` and `theta_deg`. Candidates: Lan et al. [7], [9], Zhou et al. [10] and Iorio et al. [14].
 - **To build:** `src/literature_fit.py`. It fits the bi-exponential law of eq. (30) with `scipy.optimize.curve_fit`, reports R², τ_I and τ_II, and overlays the fit on the data.
@@ -188,7 +205,7 @@ models/    trained models (git-ignored; regenerate with train.py)
 
 ## Order of remaining work
 
-1. 5: digitise 1–3 recovery-angle curves *(you)*, then fit eq. (30) and add section 5.7.8 and one slide *(Claude)*.
+1. 5: run R01–R15 in ANSYS following `ANSYS_RUNS.md` and fill in `data/ansys_results.csv` *(you)*; then run `src/ansys_ingest.py` and add section 5.7.8 and one slide *(Claude)*.
 2. Pick one η_s convention and fix the Table 5.6 Stage-2 torque and the "10.5×" claim in the report *(you)*.
 3. Set the resin's real wire temperature limit, then rerun steps 2–4 (about 15 min) *(you choose, Claude reruns)*.
 4. Before submission *(you)*:
