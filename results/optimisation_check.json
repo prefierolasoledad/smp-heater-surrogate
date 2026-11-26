@@ -5,5 +5,11 @@
   "physics_dT_wire": 14.836575378920616,
   "n_trials": 500,
   "feasible_trials_surrogate": 296,
-  "feasible_trials_physics": 256
+  "feasible_trials_physics": 256,
+  "A_mech": {
+    "surrogate_pred_t_act": 30.208194732666016,
+    "physics_t_act": 30.077258342618,
+    "feasible_trials_surrogate": 233,
+    "feasible_trials_physics": 240
+  }
 }

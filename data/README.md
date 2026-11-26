@@ -51,3 +51,17 @@ When reachable is false, `t_act_s`, `E_cyc_J`, `Fo` and `dT_int_K` are NaN.
 - **The suggested ranges include extreme designs.** At the high-V, thick-wire corner, power reaches about 100 W and the wire peak exceeds 1,000 °C. These designs are not credible, and the flags exclude them.
 - **T_ss is the temperature with no cut-off.** In most designs it is far above 90 °C, so constant-voltage heating needs a timer or thermostat cut-off in practice.
 - **The model's simplifications carry into the data:** lumped capacitance, constant ρ_nc (drift is under 0.7 % over 65 K), linear convection, and a straight-wire conduction estimate for the hotspot. An ML model trained on this data inherits all of them.
+
+---
+
+# Data card: `fd_highfidelity.csv` (step 6)
+
+**What it is:** 400 designs sampled at random (seed 42) from the `train_ok` rows above, each run through the 2D transient finite-difference model in `src/fd_model.py`. It is still **synthetic**: a higher-fidelity model, not measurements.
+
+**Columns:**
+- the seven design inputs
+- the FD outputs: `t_act_cold_hf` (time for the coldest point of the band to reach 90 °C), `t_act_mean_hf`, `dT_hot_hf` (peak epoxy temperature minus mean, at mean activation) and `T_peak_hf`
+- the matching lumped-band outputs: `t_act_lf` and `dT_wire_lf`
+- `b_band_mm`, the band width used, equal to s·L_w/l_h ≈ a
+
+**To regenerate:** delete the file and run `src/multifidelity.py`.

@@ -9,14 +9,14 @@
 | Step | Status | Output |
 |---|---|---|
 | 0. Setup | ✅ Done | `.venv/`, `requirements.txt`, `.gitignore`, `README.md` |
-| 1. Physics model | ✅ Done | `src/physics.py`; `tests/test_physics.py` passes 20/20 |
+| 1. Physics model | ✅ Done | `src/physics.py`; `tests/test_physics.py`: 33 pass, 1 expected failure |
 | 2. Dataset | ✅ Done | `data/synthetic_v1.csv`, `data/README.md` |
 | 3. Surrogate | ✅ Done | `src/train.py`, `results/metrics.csv`, figures, `models/` |
 | 4. Optimisation | ✅ Done | `src/optimise.py`, `results/optimisation.csv`, `results/pareto_front.csv` |
-| 4b. Torque / stiffness constraint | ⬜ To do (recommended) | |
+| 4b. Torque / stiffness constraint | ✅ Done | `physics.mechanics()`, `results/pareto_front_stiffness.csv`, `figures/pareto_tact_stiffness.png` |
 | 5. Literature check | ⏳ Blocked: needs the digitised curves | |
-| 6. Multi-fidelity upgrade | ⬜ Optional | |
-| 7. Report section and slides | ⬜ To do | |
+| 6. Multi-fidelity upgrade | ✅ Done (2D FD; ANSYS can slot in later) | `src/fd_model.py`, `src/multifidelity.py`, `data/fd_highfidelity.csv`, `figures/multifidelity_learning_curve.png` |
+| 7. Report section and slides | ✅ Drafted (includes step 6) | Report section 5.7.1–5.7.7 (Claude Doc) and a 12-slide deck (Slides artifact); links in chat |
 
 ## 0. Setup ✅
 
@@ -24,7 +24,7 @@
 - **Environment:** `.venv/`. Install with `.venv/bin/pip install -r requirements.txt`.
 - **Packages:** numpy, pandas, scipy, scikit-learn, xgboost, shap, optuna, matplotlib, pytest and jupyter.
 - **Code layout:** plain Python scripts in `src/`, run from the command line. These replace the notebooks planned originally. Notebooks can import `src/` later if needed for the presentation.
-- **Run times:** `generate.py` about 3 s, `train.py` about 8 min, `optimise.py` about 2 min.
+- **Run times:** `generate.py` about 3 s, `train.py` about 8 min, `optimise.py` about 4 min.
 - **Git:** `.gitignore` excludes `.venv/` (about 1.1 GB) and `models/` (about 250 MB, which `train.py` regenerates). Nothing has been committed or pushed yet.
 - **Colab** (if needed later): either mount Google Drive and `%cd` into the folder, or `git clone` the repo.
 
@@ -116,15 +116,34 @@ Every design selected with the surrogate was re-checked with `physics.py`.
 - **What limits speed:** power and heat capacity. Every fast design uses the full 5 W budget with the thinnest, narrowest hinge allowed.
 - **Cut-off needed.** The optimised designs reach T_ss ≈ 410–435 °C without a cut-off, so a thermostat or timer is mandatory.
 
-## 4b. Torque / stiffness constraint ⬜ (recommended next)
+## 4b. Torque / stiffness constraint ✅
 
-**Why:** the optimum uses t = 1.0 mm. Fold strain is fine (5.2 % against 8.4 % at baseline, eq. 28), but k_θ scales with t³. At 1.0 mm it falls to about 24 % of the baseline, and the neat hinge already fails the torque margin (Table 5.6).
+**What was built:**
+- `physics.mechanics()` implements eqs. (25)–(28), (31), (33) and (34).
+- It reproduces Table 5.6: Stage-1 in full (0.427 N·m/rad, 13.4 mN·m, TM −0.46, 1.20 Hz, 8.38 %), and Stage-2's k_θ,lock (10.87) and f1 (6.06).
+- **Convention:** glassy limits for the locked hinge, rubbery limits for recovery, no η_s.
 
-**Tasks:**
-- Add eqs. (25)–(27) and (31)–(34) to `physics.py`.
-- Test them against the Stage-1 values in Table 5.6: k_θ,lock 0.427 N·m/rad, τ_rec,0 13.4 mN·m, TM −0.46, f1 1.20 Hz.
-- Add a constraint to the optimiser, either "k_θ,lock ≥ baseline" or, for the Stage-2 CFR-SMPC case, "TM ≥ 1.0 and f1 ≥ 1.5 Hz".
-- Rerun step 4.
+**Inconsistency found in the report:**
+- The Stage-2 τ_rec,0 of 141.4 mN·m doesn't follow the Stage-1 rule, which gives 935.6 mN·m. 141.4 is close to η_s = 0.15 (140.3), but Stage-1 doesn't use η_s.
+- This is recorded as an `xfail` test.
+- **Action for you:** fix Table 5.6 and the "10.5×" claim in the report (details in `results/README.md`).
+
+**Optimiser additions:**
+- New constraints: k_θ,lock ≥ baseline and ε_max ≤ 10 %. The mechanics are evaluated exactly.
+- New runs: A_mech and B_mech (TPE), plus NSGA-II speed-against-stiffness front D.
+- Every reported design is audited with the exact physics.
+
+**Results:**
+
+| Design | t_act | k_θ,lock | Note |
+|---|---|---|---|
+| Baseline | 38.5 s | 0.427 | |
+| C: thermal-only optimum | 16.1 s | 0.092 | Too floppy, about 22 % of the baseline's stiffness |
+| **D: best with k ≥ baseline** (b 20.1, t 1.79 mm) | **26.6 s** | **0.483** | 1.45× faster and 13 % stiffer, ΔT_wire 16.4 K, ε 9.4 % |
+
+- **Why D looks like this:** stiffness scales with b·t³ but heat capacity scales with b·t, so the hinge becomes narrower and thicker. The fold-strain limit caps t at 1.91 mm.
+- **TPE fell short:** the Pareto search beat both constrained TPE runs (30.1 s and 29.4 s).
+- **Neat hinge still can't deploy:** TM ≈ −0.4 and f1 ≈ 1.2–1.3 Hz for every design, which supports Stage-2 reinforcement.
 
 ## 5. Literature check ⏳ (blocked: needs the curves)
 
@@ -132,7 +151,18 @@ Every design selected with the surrogate was re-checked with `physics.py`.
 - **To build:** `src/literature_fit.py`. It fits the bi-exponential law of eq. (30) with `scipy.optimize.curve_fit`, reports R², τ_I and τ_II, and overlays the fit on the data.
 - **Viva caveat:** these papers used filler-heated or fibre-reinforced composites. Fitting their data checks the *shape* of eq. (30). It does not calibrate neat-epoxy parameters.
 
-## 6. Multi-fidelity upgrade ⬜ (optional; strengthens "why ML?")
+## 6. Multi-fidelity upgrade ✅
+
+**Built:**
+- `src/fd_model.py`: a 2D transient finite-difference cell of the heated band, verified against the lumped model (within 1–3 %) and grid-converged (under 0.3 %).
+- `src/multifidelity.py`: runs 400 FD designs and builds learning curves.
+
+**Results:**
+- Full-band activation takes a median 14 % longer than the lumped t_act (range 4–50 %).
+- Eq. (24) overestimates the wire hotspot by about 1.5× on average.
+- Δ-learning (lumped model plus an XGBoost correction) reaches 2.7 % error from 25 FD runs. HF-only XGBoost is at 9.3 % even after 300 runs.
+
+Details are in `results/README.md`. The original plan for this step:
 
 - **(a)** A 2D transient finite-difference conduction model of the wire cross-section, or ANSYS Transient Thermal runs, to capture non-lumped hotspots and gradients. Train the surrogate on this data, or use it to correct the lumped model.
 - **(b)** Retrain the surrogate on measured T(t) data from the bench tests in §5.6 of the report.
@@ -151,15 +181,17 @@ src/       physics.py  generate.py  train.py  optimise.py
 tests/     test_physics.py
 data/      synthetic_v1.csv  README.md         (digitized/ for step 5)
 results/   metrics.csv  optimisation.csv  optimisation_check.json
-           pareto_front.csv  split_indices.json  README.md
-figures/   parity_*, shap_beeswarm_*, shap_bar_*, pareto_tact_hotspot.png
+           pareto_front.csv  pareto_front_stiffness.csv  split_indices.json  README.md
+figures/   parity_*, shap_beeswarm_*, shap_bar_*, pareto_tact_hotspot.png, pareto_tact_stiffness.png
 models/    trained models (git-ignored; regenerate with train.py)
 ```
 
 ## Order of remaining work
 
-1. 4b: add the torque and stiffness constraint and rerun the optimisation. *(Claude)*
-2. 5: digitise the curves *(you)*, then fit eq. (30) *(Claude)*.
-3. 7: write the report section and slides.
-4. 6: optional multi-fidelity upgrade, if time allows.
-5. Set the resin's real wire temperature limit, then rerun steps 2–4.
+1. 5: digitise 1–3 recovery-angle curves *(you)*, then fit eq. (30) and add section 5.7.8 and one slide *(Claude)*.
+2. Pick one η_s convention and fix the Table 5.6 Stage-2 torque and the "10.5×" claim in the report *(you)*.
+3. Set the resin's real wire temperature limit, then rerun steps 2–4 (about 15 min) *(you choose, Claude reruns)*.
+4. Before submission *(you)*:
+    - verify references [22]–[28] and the existing "[Verify…]" references [10], [13], [15] and [19]
+    - share the doc and deck links if others need them.
+5. Later, after experiments: bench-test the optimised design against the baseline, swap ANSYS runs in for the 2D FD model, and retrain.

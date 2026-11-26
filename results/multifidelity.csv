@@ -1,0 +1,23 @@
+target,method,n_hf,MAPE,MAPE_sd
+t_act_cold,LF only (lumped),0,12.38,0
+t_act_cold,HF-only XGBoost,25,37.6,5.506
+t_act_cold,Delta (lumped + XGBoost correction),25,2.699,0.2488
+t_act_cold,HF-only XGBoost,50,23.62,4.887
+t_act_cold,Delta (lumped + XGBoost correction),50,2.223,0.1954
+t_act_cold,HF-only XGBoost,100,17.35,1.202
+t_act_cold,Delta (lumped + XGBoost correction),100,1.747,0.1175
+t_act_cold,HF-only XGBoost,200,11.23,0.8356
+t_act_cold,Delta (lumped + XGBoost correction),200,1.213,0.04494
+t_act_cold,HF-only XGBoost,300,9.28,0.2098
+t_act_cold,Delta (lumped + XGBoost correction),300,1.048,0.02036
+dT_hot,LF only (lumped),0,51.33,0
+dT_hot,HF-only XGBoost,25,47.2,8.89
+dT_hot,Delta (lumped + XGBoost correction),25,10.25,1.664
+dT_hot,HF-only XGBoost,50,34.89,2.838
+dT_hot,Delta (lumped + XGBoost correction),50,7.291,0.6846
+dT_hot,HF-only XGBoost,100,24.61,0.6085
+dT_hot,Delta (lumped + XGBoost correction),100,5.028,0.4017
+dT_hot,HF-only XGBoost,200,19.45,0.6334
+dT_hot,Delta (lumped + XGBoost correction),200,3.627,0.3575
+dT_hot,HF-only XGBoost,300,15.38,0.36
+dT_hot,Delta (lumped + XGBoost correction),300,3.139,0.06312

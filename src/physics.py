@@ -107,3 +107,55 @@ def geometry_valid(d_w, p, a, t, b, margin=2.0e-3):
     """
     s = p / 2
     return (a <= b - margin) & (s / 2 > d_w) & (t > 2 * d_w)
+
+
+# ---------------------------------------------------------------------------
+# Mechanics: report eqs. (25)-(28), (31), (33), (34)  (Section 5.5.7 B-C)
+# ---------------------------------------------------------------------------
+T_G, W_G = 70.0, 3.0            # degC, K
+E_G, E_R = 1.5e9, 15.0e6        # glassy / rubbery matrix modulus, Pa
+E_F, E_F_ACT = 65.0e9, 1.8e9    # CF ply modulus locked / microbuckled, Pa
+EPS_CRIT = 0.10                 # outer-fibre/surface strain limit at the fold
+THETA_0 = np.pi                 # stowed angle, rad (180 deg)
+M_P, L_P = 0.25, 0.300          # 3U CubeSat panel mass (kg) and length (m)
+J_P = M_P * L_P**2 / 3          # eq. (31): 7.5e-3 kg m^2
+TAU_DRAG = 25e-3                # harness/MLI drag torque, N m
+
+
+def frozen_fraction(T):
+    """Eq. (25): frozen volume fraction of the DGEBA matrix."""
+    return 1.0 / (1.0 + np.exp((np.asarray(T, dtype=float) - T_G) / W_G))
+
+
+def matrix_modulus(T):
+    """Eq. (25): E_m(T) = phi_f E_g + (1 - phi_f) E_r."""
+    phi = frozen_fraction(T)
+    return phi * E_G + (1 - phi) * E_R
+
+
+def mechanics(b, t, l_h, t_f=0.0, eta_s=1.0):
+    """Hinge stiffness, recovery torque, torque margin and deployed frequency.
+
+    t_f = 0 gives the Stage-1 neat SMP hinge; t_f > 0 the Stage-2 symmetric
+    CFR-SMPC sandwich (core t_c = t - 2 t_f), eqs. (26)-(27).
+
+    Moduli convention (the one that reproduces Table 5.6): the locked hinge
+    uses the fully glassy limits (E_g, E_f) and recovery uses the fully rubbery
+    limits (E_r, E_f,act). Using E_m(60 degC) = 1.449 GPa instead of E_g would
+    lower k_lock by 3.5 %. eta_s (eq. 32, strain-energy efficiency 0.15-0.35)
+    defaults to 1 because Table 5.6 Stage-1 is computed without it.
+    """
+    b, t, l_h, t_f = (np.asarray(x, dtype=float) for x in (b, t, l_h, t_f))
+    t_c = t - 2 * t_f
+    I_core = b * t_c**3 / 12
+    I_plies = b * (t**3 - t_c**3) / 12
+    k_lock = (E_F * I_plies + E_G * I_core) / l_h              # eq. (27), cold
+    k_rec = (E_F_ACT * I_plies + E_R * I_core) / l_h           # eq. (27), hot
+    tau_rec0 = eta_s * k_rec * THETA_0                         # peak torque at 180 deg
+    return dict(
+        k_lock=k_lock, k_rec=k_rec, tau_rec0=tau_rec0,
+        TM=tau_rec0 / TAU_DRAG - 1,                            # eq. (33)
+        f1=np.sqrt(k_lock / J_P) / (2 * np.pi),                # eq. (34)
+        eps_max=THETA_0 * t / (2 * l_h),                       # eq. (28)
+        l_h_min=THETA_0 * t / (2 * EPS_CRIT),                  # eq. (28)
+    )
